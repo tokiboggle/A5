@@ -1,0 +1,11 @@
+# For echo.c
+./gcc -march=rv32im -mabi=ilp32 -fno-tree-loop-distribute-patterns -O1 echo.c lib.c -static -nostartfiles -nostdlib -o echo.riscv
+
+# For hello.c
+/Users/tokij.stroem/miniconda3/bin/python3 ./gcc.py -march=rv32im -mabi=ilp32 -fno-tree-loop-distribute-patterns -O1 hello.c lib.c -static -nostartfiles -nostdlib -o hello.riscv
+
+# For erat.c
+/Users/tokij.stroem/miniconda3/bin/python3 ./gcc.py -march=rv32im -mabi=ilp32 -fno-tree-loop-distribute-patterns -O1 erat.c lib.c -static -nostartfiles -nostdlib -o erat.riscv
+
+# For fib.c
+/Users/tokij.stroem/miniconda3/bin/python3 ./gcc.py -march=rv32im -mabi=ilp32 -fno-tree-loop-distribute-patterns -O1 fib.c lib.c -static -nostartfiles -nostdlib -o fib.riscv
