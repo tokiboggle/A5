@@ -103,7 +103,10 @@ int main(int argc, char *argv[])
     }
     int start_addr = prog_info.start;
     clock_t before = clock();
+  printf("Starting simulation at address: 0x%x\n", start_addr);
     struct Stat stats = simulate(mem, start_addr, log_file, symbols);
+printf("Simulation started with address: 0x%x\n", start_addr);
+
     long int num_insns = stats.insns;
     clock_t after = clock();
     int ticks = after - before;
