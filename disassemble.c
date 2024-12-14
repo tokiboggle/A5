@@ -30,7 +30,7 @@ void disassemble(uint32_t addr, uint32_t instruction, char* result, size_t buf_s
                         default: opcode = "unknown_R"; break;
                     }
                     break;
-                case 1: // MUL (M extension)
+                case 1: // RV32M extension
                     switch (funct3) {
                         case 0: opcode = "mul"; break;
                         case 1: opcode = "mulh"; break;
@@ -60,9 +60,21 @@ void disassemble(uint32_t addr, uint32_t instruction, char* result, size_t buf_s
                 int imm = sign_extend(get_bits(instruction, 20, 12), 12);
                 switch (funct3) {
                     case 0: opcode = "addi"; break;
+                    case 1: // SLLI
+                        opcode = "slli";
+                        imm = get_bits(instruction, 20, 5); // Only uses bottom 5 bits
+                        break;
                     case 2: opcode = "slti"; break;
                     case 3: opcode = "sltiu"; break;
                     case 4: opcode = "xori"; break;
+                    case 5: // SRLI/SRAI
+                        if (get_bits(instruction, 30, 1)) {
+                            opcode = "srai";
+                        } else {
+                            opcode = "srli";
+                        }
+                        imm = get_bits(instruction, 20, 5); // Only uses bottom 5 bits
+                        break;
                     case 6: opcode = "ori"; break;
                     case 7: opcode = "andi"; break;
                     default: opcode = "unknown_I"; break;
@@ -71,26 +83,26 @@ void disassemble(uint32_t addr, uint32_t instruction, char* result, size_t buf_s
             }
             break;
 
-        case 0x03: // Load
+        case 0x03: // Load instructions
             {
                 int imm = sign_extend(get_bits(instruction, 20, 12), 12);
                 switch (funct3) {
                     case 0: opcode = "lb"; break;
-                    case 1: opcode = "lbu"; break;
-                    case 2: opcode = "lh"; break;
-                    case 3: opcode = "lhu"; break;
-                    case 4: opcode = "lw"; break;
+                    case 1: opcode = "lh"; break;
+                    case 2: opcode = "lw"; break;
+                    case 4: opcode = "lbu"; break;
+                    case 5: opcode = "lhu"; break;
                     default: opcode = "unknown_L"; break;
                 }
                 snprintf(result, buf_size, "%s x%d, %d(x%d)", opcode, rd, imm, rs1);
             }
             break;
 
-        case 0x23: // Store
+        case 0x23: // Store instructions
             {
                 int offset = sign_extend(
-                    (get_bits(instruction, 7, 5) << 5) | 
-                    get_bits(instruction, 25, 7), 
+                    (get_bits(instruction, 7, 5) | 
+                    (get_bits(instruction, 25, 7) << 5)), 
                     12);
                 switch (funct3) {
                     case 0: opcode = "sb"; break;
@@ -142,17 +154,28 @@ void disassemble(uint32_t addr, uint32_t instruction, char* result, size_t buf_s
             }
             break;
 
+        case 0x37: // LUI
+            {
+                uint32_t imm = get_bits(instruction, 12, 20) << 12;
+                snprintf(result, buf_size, "lui x%d, 0x%x", rd, imm >> 12);
+            }
+            break;
+
         case 0x17: // AUIPC
             {
-                int imm = get_bits(instruction, 12, 20) << 12;
-                snprintf(result, buf_size, "auipc x%d, %x", rd, imm);
+                uint32_t imm = get_bits(instruction, 12, 20) << 12;
+                snprintf(result, buf_size, "auipc x%d, 0x%x", rd, imm >> 12);
             }
             break;
 
         case 0x73: // System Instructions
-            if (get_bits(instruction, 12, 3) == 0) { // ECALL
-                opcode = "ecall";
-                snprintf(result, buf_size, "%s", opcode);
+            if (funct3 == 0) {
+                if (instruction == 0x73) { // ECALL
+                    opcode = "ecall";
+                    snprintf(result, buf_size, "%s", opcode);
+                } else {
+                    snprintf(result, buf_size, "unknown_Sys");
+                }
             } else {
                 snprintf(result, buf_size, "unknown_Sys");
             }
@@ -169,6 +192,6 @@ void disassemble(uint32_t addr, uint32_t instruction, char* result, size_t buf_s
         char temp[buf_size];
         snprintf(temp, buf_size, "%s ; %s", result, sym);
         strncpy(result, temp, buf_size - 1);
-        result[buf_size - 1] = '\0'; // Ensure null-termination
+        result[buf_size - 1] = '\0';
     }
 }
